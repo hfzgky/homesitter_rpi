@@ -2,7 +2,7 @@ from architecture import *
 import os 
 import cv2
 import mtcnn
-import pickle 
+import pickle
 import numpy as np 
 from sklearn.preprocessing import Normalizer
 from tensorflow.keras.models import load_model

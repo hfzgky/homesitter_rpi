@@ -8,9 +8,26 @@ from tensorflow.keras.models import load_model
 import pickle
 from pyfcm import FCMNotification
 import FCMManager as fcm
+from pyrebase import pyrebase
+###
+config={
+    "apiKey": "AIzaSyBaWvcfynct_sX6ayJNtwhKd8GYmU3yEq4",
+    "authDomain": "homesitter-54d69.firebaseapp.com",
+    "databaseURL": "https://homesitter-54d69-default-rtdb.firebaseio.com",
+    "projectId": "homesitter-54d69",
+    "storageBucket": "homesitter-54d69.appspot.com",
+    "messagingSenderId": "969272980157",
+    "appId": "1:969272980157:web:492ba7c27a658c9c8b3dd4",
+    "measurementId": "G-L3L4HXJ5BY"
+}
+firebase = pyrebase.initialize_app(config)
+db = firebase.database()
 
+users = db.child("cctv").child("videoLink").child("real").order_by_key().limit_to_last(1).get().val()
+###
 # 파베에 저장되어있는 1분컷 영상 가져오기 위한 변수
 count = 1
+# firebaseURL = 'https://firebasestorage.googleapis.com/v0/b/homesitter-54d69.appspot.com/o/cctv%2FVideo%2F' + str(count) + '.mp4?alt=media&token=1'
 
 # 최종적으로  unknown인지 아닌지 판별하기위한 변수
 global unknown_cnt
@@ -54,6 +71,7 @@ def load_pickle(path):
     return encoding_dict
 
 def detect(img, detector, encoder, encoding_dict):
+
     global unknown_cnt
     global known_cnt
 
@@ -77,16 +95,16 @@ def detect(img, detector, encoder, encoding_dict):
         if name == 'unknown':
             cv2.rectangle(img, pt_1, pt_2, (0, 0, 255), 2)
             cv2.putText(img, name, pt_1, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
-            print('너 누구야')
+            print('등록된 사람이 아닙니다.')
             unknown_cnt += 1
             print(unknown_cnt)
         else:
             cv2.rectangle(img, pt_1, pt_2, (0, 255, 0), 2)
             cv2.putText(img, name + f'__{distance:.2f}', (pt_1[0], pt_1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 200, 200), 2)
-            print(name + "이 맞네요")
+            print("등록된" + name + "입니다.")
             known_cnt += 1
             print(known_cnt)
-    return img 
+    return img
 
 
 
@@ -100,8 +118,12 @@ if __name__ == "__main__":
     encoding_dict = load_pickle(encodings_path)
 
     while True:
+
         # cap = cv2.VideoCapture('Man.mp4') # <- 사람마다 바뀌어야 되는 부분
-        cap = cv2.VideoCapture('https://firebasestorage.googleapis.com/v0/b/homesitter-54d69.appspot.com/o/cctv%2FVideo%2F' + str(count) + '.mp4?alt=media&token=1') # <- 1분짜리영상마다 바뀌어야 되는 부분
+        #cap = cv2.VideoCapture('1.mp4') # <- 1분짜리영상마다 바뀌어야 되는 부분
+        #cap = cv2.VideoCapture('https://firebasestorage.googleapis.com/v0/b/homesitter-54d69.appspot.com/o/cctv%2Fsamevideo%2F' +  str(count) + '.mp4?alt=media&token=1') # <- 1분짜리영상마다 바뀌어야 되는 부분
+        cap = cv2.VideoCapture('https://firebasestorage.googleapis.com/v0/b/homesitter-54d69.appspot.com/o/cctv%2Fvideo%2F20211106214230.mp4?alt=media&token=1') # <- 1분짜리영상마다 바뀌어야 되는 부분
+        #cap = cv2.VideoCapture(users) # <- 1분짜리영상마다 바뀌어야 되는 부분
 
         while cap.isOpened():
             ret,frame = cap.read()
@@ -119,14 +141,15 @@ if __name__ == "__main__":
                 break
 
         if unknown_cnt > known_cnt:
-            fcm.sendPush("낯선사람", "등장등장", tokens)
+            #fcm.sendPush("홈시터", "https://firebasestorage.googleapis.com/v0/b/homesitter-54d69.appspot.com/o/cctv%2FVideo%2F3.mp4?alt=media&token=1")
+            fcm.sendPush("홈시터", "낯선 사람이 접근했습니다.", tokens, 'https://firebasestorage.googleapis.com/v0/b/homesitter-54d69.appspot.com/o/cctv%2Fsamevideo%2F' +  str(count) + '.mp4?alt=media&token=1')
             print(unknown_cnt)
             print(known_cnt)
             print(str(count) + '번 동영상')
             unknown_cnt = 0
             known_cnt = 0
         else:
-            print('주인이 맞다~~`~')
+            print('등록된 사람입니다.')
             print(unknown_cnt)
             print(known_cnt)
             print(str(count) + '번 동영상')
